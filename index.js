@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb+srv://shopNowUser:PEaxcS1cGieGNrXu@cluster0.mrcc0jp.mongodb.net/?appName=Cluster0";
+const uri = "mongodb+srv://shopNowDBUser:BmzCRYQSvqoyLgmE@cluster0.mrcc0jp.mongodb.net/?appName=Cluster0";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -30,16 +30,27 @@ async function run() {
 
         const db = client.db("shopNowDB");
         const productsCollection = db.collection("products");
+        const bidsCollection = db.collection("bids")
 
-        app.get('/products', async(req, res) => {
-            const cursor = productsCollection.find();
+        app.get('/products', async (req, res) => {
+            // const projectFields = {title: 1, price_min: 1, price_max: 1}
+            // const cursor = productsCollection.find().sort({price_min: 1}).skip(2).limit(5).project(projectFields);
+
+            console.log(req.query);
+            const email = req.query.email;
+            const query = {};
+            if (email) {
+                query.email = email;
+            }
+
+            const cursor = productsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         })
 
-        app.get('/products/:id', async(req, res) => {
+        app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await productsCollection.findOne(query)
             res.send(result);
         })
@@ -54,7 +65,7 @@ async function run() {
             const id = req.params.id;
             const updatedProduct = req.body;
 
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const update = {
                 $set: {
                     name: updatedProduct.name,
@@ -70,6 +81,26 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await productsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // bids related api 
+        app.get('/bids', async (req, res) => {
+
+            const email = req.query.email;
+            const query = {};
+            if (email) {
+                query.buyer_email = email;
+            }
+
+            const cursor = bidsCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.post('/bids', async(req, res) => {
+            const newBid = req.body;
+            const result = await bidsCollection.insertOne(newBid);
             res.send(result);
         })
 
